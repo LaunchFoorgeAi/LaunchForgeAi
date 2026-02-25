@@ -1,0 +1,84 @@
+﻿const express = require("express");
+const stripe = require("stripe")(process.env.STRIPE_SECRET);
+const fetch = require("node-fetch"); // Assure-toi que node-fetch est installé
+const cors = require("cors");
+const app = express();
+app.use(cors()); // Permet à ton app Snack d'appeler le backend
+app.use(express.json());
+let generatedPlans = {};
+// -------------------  1️⃣  Création session Stripe -------------------
+app.post("/create-checkout-session", async (req, res) => {
+  try {
+    const { idea, budget, type } = req.body;
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      line_items: [{
+        price_data: {
+          currency: "eur",
+          product_data: { name: "Business Plan IA Complet" },
+          unit_amount: 4900, // prix en centimes, 49.00€
+        },
+        quantity: 1,
+      }],
+      metadata: { idea, budget, type },
+      // redirection après paiement, ton app Snack doit écouter ce schéma
+      success_url: "launchforge://success?session_id={CHECKOUT_SESSION_ID}",
+      cancel_url: "https://google.com",
+    });
+    res.json({ url: session.url });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ error: "Impossible de créer session Stripe" });
+  }
+});
+// -------------------  2️⃣  Webhook Stripe -------------------
+app.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+  let event;
+  try {
+    event = JSON.parse(req.body.toString());
+  } catch (err) {
+    return res.status(400).send(`Webhook error: ${err.message}`);
+  }
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object;
+    const prompt = `
+Crée un business complet structuré en JSON avec ces sections :
+- strategie
+- marque
+- marketing
+- suivi_ia_30_jours
+- plan_action
+Idée : ${session.metadata.idea}
+Budget : ${session.metadata.budget}
+Type : ${session.metadata.type}
+`;
+    try {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + process.env.OPENAI_KEY,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      const data = await response.json();
+      generatedPlans[session.id] = data.choices[0].message.content;
+    } catch (err) {
+      console.log("Erreur génération OpenAI:", err);
+    }
+  }
+  res.sendStatus(200);
+});
+// -------------------  3️⃣  Endpoint pour récupérer plan -------------------
+app.get("/plan/:sessionId", (req, res) => {
+  const plan = generatedPlans[req.params.sessionId];
+  if (!plan) return res.json({ status: "processing" });
+  res.json({ status: "ready", plan });
+});
+// -------------------  4️⃣  Démarrer serveur -------------------
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Backend lancé sur port ${PORT}`));
