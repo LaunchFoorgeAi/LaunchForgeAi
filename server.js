@@ -81,4 +81,5 @@ app.get("/plan/:sessionId", (req, res) => {
 });
 // -------------------  4️⃣  Démarrer serveur -------------------
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => console.log(`Backend lancé sur port ${PORT}`));
