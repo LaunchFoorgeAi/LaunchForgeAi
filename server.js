@@ -3,8 +3,14 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET);
 const fetch = require("node-fetch"); // Assure-toi que node-fetch est installé
 const cors = require("cors");
 const app = express();
+
 app.use(cors()); // Permet à ton app Snack d'appeler le backend
-app.use(express.json());
+
+app.use((req, res, next) => {
+  if (req.originalUrl === "/webhook") return next();
+  express.json()(req, res, next);
+});
+
 let generatedPlans = {};
 // -------------------  1️⃣  Création session Stripe -------------------
 app.post("/create-checkout-session", async (req, res) => {
@@ -34,14 +40,23 @@ app.post("/create-checkout-session", async (req, res) => {
 });
 // -------------------  2️⃣  Webhook Stripe -------------------
 app.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+  const sig = req.headers["stripe-signature"];
   let event;
+
   try {
-    event = JSON.parse(req.body.toString());
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
   } catch (err) {
-    return res.status(400).send(`Webhook error: ${err.message}`);
+    console.log("Webhook signature error:", err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
   }
+
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
+
     const prompt = `
 Crée un business complet structuré en JSON avec ces sections :
 - strategie
@@ -49,30 +64,36 @@ Crée un business complet structuré en JSON avec ces sections :
 - marketing
 - suivi_ia_30_jours
 - plan_action
+
 Idée : ${session.metadata.idea}
 Budget : ${session.metadata.budget}
 Type : ${session.metadata.type}
 `;
+
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": "Bearer " + process.env.OPENAI_KEY,
+          Authorization: "Bearer " + process.env.OPENAI_KEY,
         },
         body: JSON.stringify({
           model: "gpt-4o-mini",
           messages: [{ role: "user", content: prompt }],
         }),
       });
+
       const data = await response.json();
-      generatedPlans[session.id] = data.choices[0].message.content;
+      generatedPlans[session.id] = data?.choices?.[0]?.message?.content || null;
+
     } catch (err) {
       console.log("Erreur génération OpenAI:", err);
     }
   }
+
   res.sendStatus(200);
 });
+
 // -------------------  3️⃣  Endpoint pour récupérer plan -------------------
 app.get("/plan/:sessionId", (req, res) => {
   const plan = generatedPlans[req.params.sessionId];
@@ -83,3 +104,4 @@ app.get("/plan/:sessionId", (req, res) => {
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => console.log(`Backend lancé sur port ${PORT}`));
+
