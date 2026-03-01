@@ -39,8 +39,9 @@ app.post("/create-checkout-session", async (req, res) => {
   }
 });
 // -------------------  2️⃣  Webhook Stripe -------------------
-app.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+app.post("/webhook", express.raw({ type: "application/json" }), (req, res) => {
   const sig = req.headers["stripe-signature"];
+
   let event;
 
   try {
@@ -50,9 +51,17 @@ app.post("/webhook", express.raw({ type: "application/json" }), async (req, res)
       process.env.STRIPE_WEBHOOK_SECRET
     );
   } catch (err) {
-    console.log("Webhook signature error:", err.message);
+    console.log("❌ Signature invalide :", err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
+
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object;
+    console.log("✅ Paiement confirmé :", session.id);
+  }
+
+  res.json({ received: true });
+});
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
@@ -104,4 +113,5 @@ app.get("/plan/:sessionId", (req, res) => {
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => console.log(`Backend lancé sur port ${PORT}`));
+
 
