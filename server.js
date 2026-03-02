@@ -99,6 +99,18 @@ Type : ${session.metadata.type}
 
 // -------------------  3️⃣  Endpoint pour récupérer plan -------------------
 app.get("/plan/:sessionId", (req, res) => {
+  const id = req.params.sessionId;
+
+  console.log("PLAN DEMANDE POUR =", id);
+
+  const plan = generatedPlans[id];
+
+  if (!plan) {
+    return res.json({ status: "processing" });
+  }
+
+  res.json({ status: "ready", plan });
+});
   const plan = generatedPlans[req.params.sessionId];
   if (!plan) return res.json({ status: "processing" });
   res.json({ status: "ready", plan });
@@ -124,6 +136,7 @@ app.get("/cancel", (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`Backend lancé sur port ${PORT}`));
+
 
 
 
