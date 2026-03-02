@@ -29,7 +29,7 @@ app.post("/create-checkout-session", async (req, res) => {
       }],
       metadata: { idea, budget, type },
       // redirection après paiement, ton app Snack doit écouter ce schéma
-      success_url: "launchforge://success?session_id={CHECKOUT_SESSION_ID}",
+   success_url: "https://launchforgeai.onrender.com/success?session_id={CHECKOUT_SESSION_ID}",
       cancel_url: "https://google.com",
     });
     res.json({ url: session.url });
@@ -107,6 +107,7 @@ app.get("/plan/:sessionId", (req, res) => {
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => console.log(`Backend lancé sur port ${PORT}`));
+
 
 
 
