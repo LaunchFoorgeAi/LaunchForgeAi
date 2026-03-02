@@ -82,7 +82,6 @@ Type : ${session.metadata.type}
           model: "gpt-4o-mini",
           messages: [{ role: "user", content: prompt }],
         }),
-      });
 
       const data = await response.json();
       generatedPlans[session.id] =
@@ -136,6 +135,7 @@ app.get("/cancel", (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`Backend lancé sur port ${PORT}`));
+
 
 
 
