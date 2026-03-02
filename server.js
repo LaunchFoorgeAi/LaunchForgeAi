@@ -39,9 +39,9 @@ app.post("/create-checkout-session", async (req, res) => {
   }
 });
 // -------------------  2️⃣  Webhook Stripe -------------------
-app.post("/webhook", express.raw({ type: "application/json" }), (req, res) => {
-  const sig = req.headers["stripe-signature"];
 
+  app.post("/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+  const sig = req.headers["stripe-signature"];
   let event;
 
   try {
@@ -54,14 +54,6 @@ app.post("/webhook", express.raw({ type: "application/json" }), (req, res) => {
     console.log("❌ Signature invalide :", err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
-
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object;
-    console.log("✅ Paiement confirmé :", session.id);
-  }
-
-  res.json({ received: true });
-});
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
@@ -93,14 +85,16 @@ Type : ${session.metadata.type}
       });
 
       const data = await response.json();
-      generatedPlans[session.id] = data?.choices?.[0]?.message?.content || null;
+      generatedPlans[session.id] =
+        data?.choices?.[0]?.message?.content || null;
 
+      console.log("✅ Plan généré :", session.id);
     } catch (err) {
-      console.log("Erreur génération OpenAI:", err);
+      console.log("❌ OpenAI error:", err);
     }
   }
 
-  res.sendStatus(200);
+  res.json({ received: true });
 });
 
 // -------------------  3️⃣  Endpoint pour récupérer plan -------------------
@@ -113,5 +107,6 @@ app.get("/plan/:sessionId", (req, res) => {
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => console.log(`Backend lancé sur port ${PORT}`));
+
 
 
