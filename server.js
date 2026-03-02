@@ -1,4 +1,4 @@
-﻿const express = require("express");
+const express = require("express");
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
 const fetch = require("node-fetch"); // Assure-toi que node-fetch est installé
 const cors = require("cors");
@@ -135,6 +135,13 @@ app.get("/cancel", (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`Backend lancé sur port ${PORT}`));
+
+
+
+
+
+
+
 
 
 
