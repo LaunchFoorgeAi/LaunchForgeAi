@@ -2,6 +2,8 @@ const express = require("express");
 const cors = require("cors");
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
 const fetch = require("node-fetch");
+const fs = require("fs");
+const path = require("path");
 
 const app = express();
 
@@ -12,7 +14,17 @@ app.use((req, res, next) => {
   express.json()(req, res, next);
 });
 
+const plansFile = path.join(__dirname, "plans.json");
+
 let generatedPlans = {};
+
+if (fs.existsSync(plansFile)) {
+  try {
+    generatedPlans = JSON.parse(fs.readFileSync(plansFile, "utf8"));
+  } catch (e) {
+    generatedPlans = {};
+  }
+}
 
 // 1) Création session Stripe
 app.post("/create-checkout-session", async (req, res) => {
@@ -97,10 +109,12 @@ Type : ${session.metadata?.type}
         );
 
         const data = await response.json();
-        generatedPlans[session.id] =
-          data?.choices?.[0]?.message?.content || null;
+     generatedPlans[session.id] =
+  data?.choices?.[0]?.message?.content || null;
 
-        console.log("Plan généré :", session.id);
+fs.writeFileSync(plansFile, JSON.stringify(generatedPlans, null, 2));
+
+console.log("Plan généré :", session.id);
       } catch (err) {
         console.log("Erreur OpenAI :", err);
       }
@@ -128,7 +142,7 @@ app.get("/success", (req, res) => {
 
   res.send(`
     <html>
-      <body>
+      <body style="font-family: Arial; text-align: center; padding-top: 40px;">
         <h1>Paiement réussi ✅</h1>
         <p>Redirection vers ton business...</p>
         <script>
