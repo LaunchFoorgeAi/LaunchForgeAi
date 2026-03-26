@@ -82,7 +82,9 @@ Type : ${session.metadata.type}
           model: "gpt-4o-mini",
           messages: [{ role: "user", content: prompt }],
         }),
-
+          }
+        );
+      
       const data = await response.json();
       generatedPlans[session.id] =
         data?.choices?.[0]?.message?.content || null;
