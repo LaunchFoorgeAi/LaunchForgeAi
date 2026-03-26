@@ -1,45 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VEXLA — Lance ton business avec l’IA</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="container">
+        <p class="badge">IA BUSINESS • LANCEMENT AUTOMATIQUE</p>
+        <h1>VEXLA</h1>
+        <h2>Crée un business rentable en quelques minutes grâce à l’IA.</h2>
+        <p class="subtitle">
+          VEXLA génère ton positionnement, ton offre, ton branding, ton tunnel de vente
+          et ton plan d’action 30 jours à partir de tes réponses.
+        </p>
 
-V
-VEXLA
-Commencer
-IA BUSINESS • LANCEMENT AUTOMATIQUE
-Crée un business rentable en quelques minutes grâce à l’IA.
-VEXLA génère ton positionnement, ton offre, ton branding, ton tunnel de vente et ton plan d’action 30 jours à partir de tes réponses.
-Lancer mon business Voir comment ça marche
-1abonnement simple
-34,99€paiement unique
-5livrables business
-Génération IA en cours
-Positionnement Créateurs & indépendants
-Offre Pack prêt à lancer premium
-Funnel Landing + Checkout + Follow-up
-Résultat Business livré automatiquement
-Comment ça marche
-Une expérience simple, claire, rapide.
-01
-Tu réponds au formulaire
-Idée, cible, budget, niveau, objectif. VEXLA comprend ton profil.
-02
-Tu paies via Stripe
-Paiement vérifié, session sécurisée, retour automatique sur le site.
-03
-Le business se débloque
-Le site vérifie le paiement, récupère le plan et affiche le résultat.
-Lance VEXLA
-Complète le formulaire puis lance le paiement.
-Ton idée ou thème de business
-Ta cible
-Ton budget de départ
-Ton niveau
-              Choisir
-              Débutant
-              Intermédiaire
-              Avancé
-            
-Ton objectif
-Détails supplémentaires
-Voir un aperçu gratuit Débloquer mon business — 34,99€
-Le bouton aperçu fonctionne seulement si tu as un endpoint de prévisualisation côté backend. Sinon, tu peux l’ignorer.
-Aperçu / résultat
-En attente
-Remplis le formulaire puis clique sur un bouton.
+        <div class="hero-actions">
+          <a href="#formulaire" class="btn btn-primary">Lancer mon business</a>
+          <a href="#comment-ca-marche" class="btn btn-secondary">Voir comment ça marche</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="offer">
+      <div class="container">
+        <h3>Une offre simple</h3>
+        <div class="card">
+          <p class="price">34,99€ <span>paiement unique</span></p>
+          <ul>
+            <li>5 livrables business</li>
+            <li>Génération IA en cours</li>
+            <li>Positionnement créateurs & indépendants</li>
+            <li>Offre pack prêt à lancer premium</li>
+            <li>Funnel landing + checkout + follow-up</li>
+            <li>Résultat business livré automatiquement</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="comment-ca-marche" class="steps">
+      <div class="container">
+        <h3>Comment ça marche</h3>
+        <p>Une expérience simple, claire, rapide.</p>
+
+        <div class="steps-grid">
+          <div class="step-card">
+            <span class="step-number">01</span>
+            <h4>Tu réponds au formulaire</h4>
+            <p>Idée, cible, budget, niveau, objectif. VEXLA comprend ton profil.</p>
+          </div>
+
+          <div class="step-card">
+            <span class="step-number">02</span>
+            <h4>Tu paies via Stripe</h4>
+            <p>Paiement vérifié, session sécurisée, retour automatique sur le site.</p>
+          </div>
+
+          <div class="step-card">
+            <span class="step-number">03</span>
+            <h4>Le business se débloque</h4>
+            <p>Le site vérifie le paiement, récupère le plan et affiche le résultat.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="formulaire" class="form-section">
+      <div class="container">
+        <h3>Lance VEXLA</h3>
+        <p>Complète le formulaire puis lance le paiement.</p>
+
+        <form id="business-form" class="business-form">
+          <label>
+            Ton idée ou thème de business
+            <input type="text" name="idea" placeholder="Ex : coaching, ecommerce, sport..." required />
+          </label>
+
+          <label>
+            Ta cible
+            <input type="text" name="target" placeholder="Ex : étudiants, freelances, sportifs..." required />
+          </label>
+
+          <label>
+            Ton budget de départ
+            <input type="text" name="budget" placeholder="Ex : 50€, 200€, 500€..." required />
+          </label>
+
+          <label>
+            Ton niveau
+            <select name="level" required>
+              <option value="">Choisir</option>
+              <option value="Débutant">Débutant</option>
+              <option value="Intermédiaire">Intermédiaire</option>
+              <option value="Avancé">Avancé</option>
+            </select>
+          </label>
+
+          <label>
+            Ton objectif
+            <input type="text" name="goal" placeholder="Ex : générer mes premiers clients..." required />
+          </label>
+
+          <label>
+            Détails supplémentaires
+            <textarea name="details" rows="5" placeholder="Ajoute ici des précisions utiles..."></textarea>
+          </label>
+
+          <button type="submit" class="btn btn-primary full">
+            Débloquer mon business — 34,99€
+          </button>
+        </form>
+
+        <div id="preview-box" class="preview-box"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+
