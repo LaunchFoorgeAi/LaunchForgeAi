@@ -127,16 +127,18 @@ app.get("/success", (req, res) => {
   const sessionId = req.query.session_id;
 
   res.send(`
-    <h1>Paiement réussi ✅</h1>
-    <p>Ton session ID :</p>
-    <pre>${sessionId}</pre>
-    <p>Ouvre ce lien pour voir ton business :</p>
-    <a href="/plan/${sessionId}">Voir mon business</a>
+    <html>
+      <body>
+        <h1>Paiement réussi ✅</h1>
+        <p>Redirection vers ton business...</p>
+        <script>
+          setTimeout(() => {
+            window.location.href = "/plan/${sessionId}";
+          }, 2000);
+        </script>
+      </body>
+    </html>
   `);
-});
-
-app.get("/cancel", (req, res) => {
-  res.send("<h1>Paiement annulé ❌</h1>");
 });
 
 // 5) Lancer serveur
