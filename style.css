@@ -161,3 +161,12 @@ select option { background: #111827; color: #fff; }
   .hero { padding-top: 36px; }
   .hero h1 { font-size: 2.6rem; }
 }
+
+.blur {
+  filter: blur(6px);
+  opacity: 0.6;
+}
+.lock {
+  color: #ff7e8a;
+  font-weight: bold;
+}
