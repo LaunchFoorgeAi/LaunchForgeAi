@@ -144,11 +144,15 @@ function renderError(message) {
 
 function renderBusiness(data) {
   const html = `
-    ${section('Positionnement', data.positioning || data.positionnement || 'Non renvoyé par le backend')}
-    ${section('Offre', data.offer || data.offre || 'Non renvoyé par le backend')}
-    ${section('Branding', data.branding || data.brand || 'Non renvoyé par le backend')}
-    ${section('Tunnel de vente', data.funnel || data.tunnel || 'Non renvoyé par le backend')}
-    ${listSection('Plan 30 jours', data.plan30 || data.plan || data['30dayPlan'])}
+    ${section('Positionnement', data.positioning)}
+
+    ${section('Offre', data.offer)}
+
+    ${section('Branding', `<span class="blur">${data.branding}</span>`)}
+
+    ${section('Tunnel de vente', `<span class="blur">${data.funnel}</span>`)}
+
+    ${listSection('Plan 30 jours', data.plan30)}
   `;
   previewContent.innerHTML = html;
 }
