@@ -113,22 +113,40 @@
           <form id="business-form" class="business-form">
             <div class="field">
               <label for="idea">Ton idée ou thème de business</label>
-              <input id="idea" name="idea" type="text" placeholder="Ex : coaching, ecommerce, sport..." required>
+              <input
+                id="idea"
+                name="idea"
+                type="text"
+                placeholder="Ex : coaching, ecommerce, sport..."
+                required
+              />
             </div>
 
             <div class="field">
-              <label for="target">Ta cible</label>
-              <input id="target" name="target" type="text" placeholder="Ex : étudiants, freelances, sportifs..." required>
+              <label for="audience">Ta cible</label>
+              <input
+                id="audience"
+                name="audience"
+                type="text"
+                placeholder="Ex : étudiants, freelances, sportifs..."
+                required
+              />
             </div>
 
             <div class="field">
               <label for="budget">Ton budget de départ</label>
-              <input id="budget" name="budget" type="text" placeholder="Ex : 50€, 200€, 500€..." required>
+              <input
+                id="budget"
+                name="budget"
+                type="text"
+                placeholder="Ex : 50€, 200€, 500€..."
+                required
+              />
             </div>
 
             <div class="field">
-              <label for="level">Ton niveau</label>
-              <select id="level" name="level" required>
+              <label for="experience">Ton niveau</label>
+              <select id="experience" name="experience" required>
                 <option value="">Choisir</option>
                 <option value="Débutant">Débutant</option>
                 <option value="Intermédiaire">Intermédiaire</option>
@@ -138,20 +156,38 @@
 
             <div class="field full">
               <label for="goal">Ton objectif</label>
-              <input id="goal" name="goal" type="text" placeholder="Ex : obtenir mes premiers clients..." required>
+              <input
+                id="goal"
+                name="goal"
+                type="text"
+                placeholder="Ex : obtenir mes premières ventes..."
+                required
+              />
             </div>
 
             <div class="field full">
               <label for="details">Détails supplémentaires</label>
-              <textarea id="details" name="details" rows="5" placeholder="Ajoute ici des précisions utiles..."></textarea>
+              <textarea
+                id="details"
+                name="details"
+                rows="5"
+                placeholder="Ajoute ici des précisions utiles..."
+              ></textarea>
             </div>
 
             <div class="actions full">
-              <button type="submit" class="primary-btn">Débloquer mon business — 34,99€</button>
+              <button type="button" id="preview-btn" class="secondary-btn">
+                Voir un aperçu gratuit
+              </button>
+
+              <button type="submit" id="checkout-btn" class="primary-btn">
+                Débloquer mon business — 34,99€
+              </button>
             </div>
 
             <p class="tiny-note full">
-              L’aperçu fonctionne seulement si tu as un endpoint de prévisualisation côté backend. Sinon, tu peux l’ignorer.
+              L’aperçu fonctionne seulement si tu as un endpoint de prévisualisation côté backend.
+              Sinon, tu peux l’ignorer.
             </p>
           </form>
         </div>
@@ -159,9 +195,10 @@
         <aside class="glass preview">
           <div class="preview-head">
             <h3>Aperçu / résultat</h3>
-            <span>En attente</span>
+            <span id="preview-status">En attente</span>
           </div>
-          <div id="preview-box" class="preview-content empty">
+
+          <div id="preview-content" class="preview-content empty">
             Remplis le formulaire puis clique sur un bouton.
           </div>
         </aside>
@@ -173,3 +210,9 @@
   <script src="app.js"></script>
 </body>
 </html>
+
+
+    
+           
+
+          
