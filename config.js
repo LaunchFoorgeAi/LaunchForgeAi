@@ -1,5 +1,5 @@
 window.VEXLA_CONFIG = {
-  BACKEND_BASE_URL: "https://TON-BACKEND.onrender.com",
+  BACKEND_BASE_URL: "https://launchforgeai.onrender.com",
 
   // Endpoint qui crée la session Stripe et renvoie { url } ou { checkoutUrl }
   CHECKOUT_ENDPOINT: "/create-checkout-session",
