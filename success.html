@@ -1,7 +1,37 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VEXLA — Paiement validé</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="bg"></div>
 
-PAIEMENT EN COURS DE VÉRIFICATION
-Validation du paiement…
-VEXLA vérifie ton paiement et récupère ton business. Ne ferme pas cette page.
+  <main class="success-wrap">
+    <section class="glass success-card">
+      <div class="section-title left">
+        <h2>PAIEMENT EN COURS DE VÉRIFICATION</h2>
+        <p id="success-message">
+          Validation du paiement… VEXLA vérifie ton paiement et récupère ton business.
+          Ne ferme pas cette page.
+        </p>
+      </div>
 
+      <div class="loading-bar">
+        <span></span>
+      </div>
 
-Retour à l’accueil
+      <div id="result-box" class="result-box hidden"></div>
+
+      <div class="actions full" style="margin-top: 24px;">
+        <a href="index.html" id="back-home" class="secondary-btn hidden">Retour à l’accueil</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="success.js"></script>
+</body>
+</html>
