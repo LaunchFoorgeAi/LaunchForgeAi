@@ -1,96 +1,76 @@
-const cfg = window.VEXLA_CONFIG;
-const message = document.getElementById("success-message");
-const resultBox = document.getElementById("result-box");
-const backHome = document.getElementById("back-home");
+const BACKEND_URL = "https://vexla-backend.onrender.com";
 
-init();
-
-async function init() {
+async function loadBusiness() {
   const params = new URLSearchParams(window.location.search);
   const sessionId = params.get("session_id");
 
+  const message = document.getElementById("message");
+  const positionnement = document.getElementById("positionnement");
+  const offre = document.getElementById("offre");
+  const branding = document.getElementById("branding");
+  const tunnel = document.getElementById("tunnel");
+  const plan30j = document.getElementById("plan30j");
+
   if (!sessionId) {
-    showError("Aucun session_id trouvé dans l’URL. Vérifie le success_url envoyé à Stripe.");
+    if (message) {
+      message.textContent = "Erreur : session introuvable.";
+    }
     return;
   }
 
-  message.textContent = "Paiement détecté. Vérification et récupération du business en cours…";
+  if (message) {
+    message.textContent = "Paiement en cours de vérification...";
+  }
 
   try {
-    const data = await pollVerification(sessionId, 12, 2500);
-    showSuccess(data.business || data.plan || data);
-  } catch (error) {
-    showError(error.message || "Impossible de récupérer le business après paiement.");
-  }
-}
+    const res = await fetch(`${BACKEND_URL}/verify?session_id=${sessionId}`);
+    const data = await res.json();
 
-async function pollVerification(sessionId, tries, delay) {
-  for (let i = 0; i < tries; i++) {
-    const response = await fetch(
-      `${cfg.BACKEND_BASE_URL}${cfg.VERIFY_ENDPOINT}?session_id=${encodeURIComponent(sessionId)}`
-    );
-
-    if (response.ok) {
-      const data = await response.json();
-
-      if (data.paid === true && data.business) {
-        return data;
+    if (data.status === "pending") {
+      if (message) {
+        message.textContent = "Paiement validé, mais contenu pas encore disponible. Recharge la page dans quelques secondes.";
       }
-
-      if (data.status === "processing") {
-        await new Promise(resolve => setTimeout(resolve, delay));
-        continue;
-      }
+      return;
     }
 
-    await new Promise(resolve => setTimeout(resolve, delay));
+    if (data.status === "success" && data.business) {
+      if (message) {
+        message.textContent = "Paiement confirmé et contenu récupéré avec succès.";
+      }
+
+      if (positionnement) {
+        positionnement.textContent = data.business.positionnement || "";
+      }
+
+      if (offre) {
+        offre.textContent = data.business.offre || "";
+      }
+
+      if (branding) {
+        branding.textContent = data.business.branding || "";
+      }
+
+      if (tunnel) {
+        tunnel.textContent = data.business.tunnel || "";
+      }
+
+      if (plan30j) {
+        plan30j.textContent = data.business.plan30j || "";
+      }
+
+      return;
+    }
+
+    if (message) {
+      message.textContent = "Erreur lors de la récupération du business.";
+    }
+  } catch (error) {
+    console.error("Erreur success.js :", error);
+
+    if (message) {
+      message.textContent = "Erreur serveur.";
+    }
   }
-
-  throw new Error("Le paiement semble validé, mais ton backend ne renvoie pas encore le résultat.");
 }
 
-function showSuccess(data) {
-  message.textContent = "Paiement validé. Ton business VEXLA est prêt.";
-  resultBox.classList.remove("hidden");
-  resultBox.innerHTML = `
-    <div class="success">Paiement confirmé et contenu récupéré avec succès.</div>
-    ${section("Positionnement", data.positioning || "Non renvoyé")}
-    ${section("Offre", data.offer || "Non renvoyé")}
-    ${section("Branding", data.branding || "Non renvoyé")}
-    ${section("Tunnel de vente", data.funnel || "Non renvoyé")}
-    ${listSection("Plan 30 jours", data.plan30 || data.plan)}
-  `;
-  backHome.classList.remove("hidden");
-}
-
-function showError(text) {
-  message.textContent = text;
-  resultBox.classList.remove("hidden");
-  resultBox.innerHTML = `<div class="error">${escapeHtml(text)}</div>`;
-  backHome.classList.remove("hidden");
-}
-
-function section(title, value) {
-  return `<div class="preview-card"><h4>${escapeHtml(title)}</h4><p>${escapeHtml(String(value || ""))}</p></div>`;
-}
-
-function listSection(title, value) {
-  let content = "<p>Non renvoyé par le backend</p>";
-
-  if (Array.isArray(value)) {
-    content = `<ul>${value.map(item => `<li>${escapeHtml(String(item))}</li>`).join("")}</ul>`;
-  } else if (typeof value === "string" && value.trim()) {
-    content = `<p>${escapeHtml(value)}</p>`;
-  }
-
-  return `<div class="preview-card"><h4>${escapeHtml(title)}</h4>${content}</div>`;
-}
-
-function escapeHtml(str) {
-  return str
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
+loadBusiness();
