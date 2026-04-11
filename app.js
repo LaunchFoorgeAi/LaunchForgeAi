@@ -8,6 +8,9 @@ const previewStatus = document.getElementById("preview-status");
 
 let currentTempId = null;
 
+/* =========================================
+   INIT
+========================================= */
 hydrateForm();
 handleCancelled();
 
@@ -20,6 +23,9 @@ if (previewBtn) {
   previewBtn.addEventListener("click", handlePreview);
 }
 
+/* =========================================
+   FORM DATA
+========================================= */
 function getPayload() {
   const formData = new FormData(form);
   const raw = Object.fromEntries(formData.entries());
@@ -50,155 +56,176 @@ function hydrateForm() {
   }
 }
 
+/* =========================================
+   URL PARAMS
+========================================= */
 function handleCancelled() {
   const params = new URLSearchParams(window.location.search);
   if (params.get("cancelled") === "1") {
-    renderError("Paiement annulé. Tu peux reprendre où tu t'es arrêté puis relancer le paiement.");
+    renderError("Paiement annulé. Tu peux reprendre puis relancer.");
   }
 }
 
+/* =========================================
+   VALIDATION
+========================================= */
 function validateMainFields(payload) {
   return payload.idea && payload.audience && payload.budget && payload.experience && payload.goal;
 }
 
+/* =========================================
+   BACKEND WAKE (fix Render sleep)
+========================================= */
 async function wakeBackend() {
   if (!cfg?.BACKEND_BASE_URL) {
     throw new Error("BACKEND_BASE_URL manquant dans config.js");
   }
 
   try {
-    const res = await fetch(cfg.BACKEND_BASE_URL, {
-      method: "GET"
-    });
-
-    if (!res.ok) {
-      throw new Error(`Backend inaccessible (${res.status})`);
-    }
-  } catch (error) {
+    const res = await fetch(cfg.BACKEND_BASE_URL);
+    if (!res.ok) throw new Error();
+  } catch {
     throw new Error(`Impossible de joindre le backend à ${cfg.BACKEND_BASE_URL}`);
   }
 }
 
+/* =========================================
+   PREVIEW API
+========================================= */
 async function createPreviewAndStoreTempId(payload) {
-  if (!cfg || !cfg.BACKEND_BASE_URL || !cfg.PREVIEW_ENDPOINT) {
-    throw new Error("Aucun endpoint d’aperçu configuré dans config.js");
+  if (!cfg?.BACKEND_BASE_URL || !cfg?.PREVIEW_ENDPOINT) {
+    throw new Error("Endpoint preview manquant dans config.js");
   }
 
   await wakeBackend();
 
   const response = await fetch(`${cfg.BACKEND_BASE_URL}${cfg.PREVIEW_ENDPOINT}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json"
+    },
     body: JSON.stringify(payload)
   });
 
   const text = await response.text();
-  let data = {};
 
+  let data;
   try {
-    data = text ? JSON.parse(text) : {};
+    data = JSON.parse(text);
   } catch {
-    throw new Error(text || "Réponse backend invalide");
+    throw new Error("Réponse backend invalide");
   }
 
   if (!response.ok) {
-    throw new Error(data.error || text || "Impossible de générer l’aperçu");
+    throw new Error(data.error || "Erreur preview");
   }
 
   if (!data.tempId) {
-    throw new Error("Le backend n’a pas renvoyé de tempId");
+    throw new Error("tempId manquant côté backend");
   }
 
   currentTempId = data.tempId;
+
   return data;
 }
 
+/* =========================================
+   HANDLE PREVIEW
+========================================= */
 async function handlePreview() {
   const payload = getPayload();
 
   if (!validateMainFields(payload)) {
-    renderError("Complète d'abord les champs principaux pour générer un aperçu.");
+    renderError("Complète les champs principaux.");
     return;
   }
 
-  previewStatus.textContent = "Aperçu en cours";
+  previewStatus.textContent = "Chargement...";
   previewContent.classList.remove("empty");
-  previewContent.innerHTML = "<p>Connexion au backend puis génération de l’aperçu...</p>";
+  previewContent.innerHTML = "<p>Connexion au serveur...</p>";
 
   try {
     const data = await createPreviewAndStoreTempId(payload);
-    renderBusiness(data.preview || {});
+
+    renderBusiness(data.preview);
     previewStatus.textContent = "Aperçu prêt";
-  } catch (error) {
-    renderError(error.message || "Erreur pendant l’aperçu");
+
+  } catch (err) {
+    renderError(err.message);
   }
 }
 
-async function handleCheckout(event) {
-  event.preventDefault();
+/* =========================================
+   HANDLE CHECKOUT
+========================================= */
+async function handleCheckout(e) {
+  e.preventDefault();
 
   const payload = getPayload();
 
   if (!validateMainFields(payload)) {
-    renderError("Merci de compléter tous les champs obligatoires avant de payer.");
+    renderError("Complète tous les champs avant paiement.");
     return;
   }
 
-  if (!cfg || !cfg.BACKEND_BASE_URL || !cfg.CHECKOUT_ENDPOINT) {
-    renderError("Le backend Stripe n’est pas configuré dans config.js");
+  if (!cfg?.BACKEND_BASE_URL || !cfg?.CHECKOUT_ENDPOINT) {
+    renderError("Backend Stripe non configuré");
     return;
   }
 
   persistForm();
+
   checkoutBtn.disabled = true;
-  checkoutBtn.textContent = "Redirection vers Stripe...";
+  checkoutBtn.textContent = "Redirection...";
 
   try {
+    // Générer preview si pas encore fait
     if (!currentTempId) {
-      const previewData = await createPreviewAndStoreTempId(payload);
-      if (previewData.preview) {
-        renderBusiness(previewData.preview);
-        previewStatus.textContent = "Aperçu prêt";
-      }
+      const data = await createPreviewAndStoreTempId(payload);
+      renderBusiness(data.preview);
     }
 
     await wakeBackend();
 
     const response = await fetch(`${cfg.BACKEND_BASE_URL}${cfg.CHECKOUT_ENDPOINT}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify({
         tempId: currentTempId
       })
     });
 
     const text = await response.text();
-    let data = {};
 
+    let data;
     try {
-      data = text ? JSON.parse(text) : {};
+      data = JSON.parse(text);
     } catch {
-      throw new Error(text || "Réponse backend invalide");
+      throw new Error("Réponse Stripe invalide");
     }
 
     if (!response.ok) {
-      throw new Error(data.error || text || "Impossible de créer la session Stripe");
+      throw new Error(data.error || "Erreur Stripe");
     }
 
-    const url = data.url || data.checkoutUrl;
-
-    if (!url) {
-      throw new Error("Ton backend doit renvoyer { url }");
+    if (!data.url) {
+      throw new Error("Le backend doit renvoyer { url }");
     }
 
-    window.location.href = url;
-  } catch (error) {
+    window.location.href = data.url;
+
+  } catch (err) {
     checkoutBtn.disabled = false;
-    checkoutBtn.textContent = `Débloquer mon business — ${cfg.PRICE_LABEL || "34,99€"}`;
-    renderError(error.message || "Erreur de connexion à Stripe");
+    checkoutBtn.textContent = "Débloquer mon business — 34,99€";
+    renderError(err.message);
   }
 }
 
+/* =========================================
+   RENDER
+========================================= */
 function renderError(message) {
   previewStatus.textContent = "Erreur";
   previewContent.classList.remove("empty");
@@ -219,9 +246,17 @@ function renderBusiness(data) {
 }
 
 function section(title, value) {
-  return `<div class="preview-card"><h4>${escapeHtml(title)}</h4><p>${escapeHtml(String(value || ""))}</p></div>`;
+  return `
+    <div class="preview-card">
+      <h4>${escapeHtml(title)}</h4>
+      <p>${escapeHtml(value || "")}</p>
+    </div>
+  `;
 }
 
+/* =========================================
+   SECURITY
+========================================= */
 function escapeHtml(str) {
   return String(str)
     .replaceAll("&", "&amp;")
