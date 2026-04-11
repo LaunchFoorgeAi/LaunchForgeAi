@@ -61,10 +61,30 @@ function validateMainFields(payload) {
   return payload.idea && payload.audience && payload.budget && payload.experience && payload.goal;
 }
 
+async function wakeBackend() {
+  if (!cfg?.BACKEND_BASE_URL) {
+    throw new Error("BACKEND_BASE_URL manquant dans config.js");
+  }
+
+  try {
+    const res = await fetch(cfg.BACKEND_BASE_URL, {
+      method: "GET"
+    });
+
+    if (!res.ok) {
+      throw new Error(`Backend inaccessible (${res.status})`);
+    }
+  } catch (error) {
+    throw new Error(`Impossible de joindre le backend à ${cfg.BACKEND_BASE_URL}`);
+  }
+}
+
 async function createPreviewAndStoreTempId(payload) {
   if (!cfg || !cfg.BACKEND_BASE_URL || !cfg.PREVIEW_ENDPOINT) {
     throw new Error("Aucun endpoint d’aperçu configuré dans config.js");
   }
+
+  await wakeBackend();
 
   const response = await fetch(`${cfg.BACKEND_BASE_URL}${cfg.PREVIEW_ENDPOINT}`, {
     method: "POST",
@@ -103,7 +123,7 @@ async function handlePreview() {
 
   previewStatus.textContent = "Aperçu en cours";
   previewContent.classList.remove("empty");
-  previewContent.innerHTML = "<p>Génération de l’aperçu...</p>";
+  previewContent.innerHTML = "<p>Connexion au backend puis génération de l’aperçu...</p>";
 
   try {
     const data = await createPreviewAndStoreTempId(payload);
@@ -141,6 +161,8 @@ async function handleCheckout(event) {
         previewStatus.textContent = "Aperçu prêt";
       }
     }
+
+    await wakeBackend();
 
     const response = await fetch(`${cfg.BACKEND_BASE_URL}${cfg.CHECKOUT_ENDPOINT}`, {
       method: "POST",
