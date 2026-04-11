@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VEXLA — Paiement validé</title>
+  <title>VEXLA – Paiement validé</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -13,8 +13,8 @@
     <section class="glass success-card">
       <div class="section-title left">
         <h2>PAIEMENT EN COURS DE VÉRIFICATION</h2>
-        <p id="success-message">
-          Validation du paiement… VEXLA vérifie ton paiement et récupère ton business.
+        <p id="message">
+          Validation du paiement… VEXLA vérifie ton accès.
           Ne ferme pas cette page.
         </p>
       </div>
@@ -23,10 +23,35 @@
         <span></span>
       </div>
 
-      <div id="result-box" class="result-box hidden"></div>
+      <div id="result-box" class="result-box">
+        <div class="result-section">
+          <h3>Positionnement</h3>
+          <p id="positionnement"></p>
+        </div>
 
-      <div class="actions full" style="margin-top: 24px;">
-        <a href="index.html" id="back-home" class="secondary-btn hidden">Retour à l’accueil</a>
+        <div class="result-section">
+          <h3>Offre</h3>
+          <p id="offre"></p>
+        </div>
+
+        <div class="result-section">
+          <h3>Branding</h3>
+          <p id="branding"></p>
+        </div>
+
+        <div class="result-section">
+          <h3>Tunnel de vente</h3>
+          <p id="tunnel"></p>
+        </div>
+
+        <div class="result-section">
+          <h3>Plan 30 jours</h3>
+          <p id="plan30j"></p>
+        </div>
+      </div>
+
+      <div class="actions full" style="margin-top:16px;">
+        <a href="index.html" id="back-home" class="btn secondary">Retour à l’accueil</a>
       </div>
     </section>
   </main>
