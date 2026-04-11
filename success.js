@@ -1,4 +1,4 @@
-const BACKEND_URL = "https://vexla-backend.onrender.com";
+const BACKEND_URL = "https://backhend-render.onrender.com",
 
 async function loadBusiness() {
   const params = new URLSearchParams(window.location.search);
