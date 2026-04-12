@@ -27,6 +27,8 @@ if (previewBtn) {
    FORM DATA
 ========================================= */
 function getPayload() {
+  if (!form) return {};
+
   const formData = new FormData(form);
   const raw = Object.fromEntries(formData.entries());
 
@@ -70,22 +72,64 @@ function handleCancelled() {
    VALIDATION
 ========================================= */
 function validateMainFields(payload) {
-  return payload.idea && payload.audience && payload.budget && payload.experience && payload.goal;
+  return Boolean(
+    payload.idea &&
+    payload.audience &&
+    payload.budget &&
+    payload.experience &&
+    payload.goal
+  );
 }
 
 /* =========================================
-   BACKEND WAKE (fix Render sleep)
+   HELPERS FETCH
+========================================= */
+async function fetchWithTimeout(url, options = {}, timeoutMs = 20000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    return response;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+function normalizeBaseUrl(url) {
+  return String(url || "").replace(/\/+$/, "");
+}
+
+/* =========================================
+   BACKEND WAKE
 ========================================= */
 async function wakeBackend() {
-  if (!cfg?.BACKEND_BASE_URL) {
+  const baseUrl = normalizeBaseUrl(cfg?.BACKEND_BASE_URL);
+
+  if (!baseUrl) {
     throw new Error("BACKEND_BASE_URL manquant dans config.js");
   }
 
   try {
-    const res = await fetch(cfg.BACKEND_BASE_URL);
-    if (!res.ok) throw new Error();
-  } catch {
-    throw new Error(`Impossible de joindre le backend à ${cfg.BACKEND_BASE_URL}`);
+    const response = await fetchWithTimeout(baseUrl, {
+      method: "GET",
+      cache: "no-store"
+    }, 25000);
+
+    if (!response.ok) {
+      throw new Error(`Backend inaccessible (${response.status})`);
+    }
+
+    return true;
+  } catch (err) {
+    if (err.name === "AbortError") {
+      throw new Error("Le backend met trop de temps à répondre. Réessaie dans 10 secondes.");
+    }
+
+    throw new Error(`Impossible de joindre le backend à ${baseUrl}`);
   }
 }
 
@@ -93,19 +137,22 @@ async function wakeBackend() {
    PREVIEW API
 ========================================= */
 async function createPreviewAndStoreTempId(payload) {
-  if (!cfg?.BACKEND_BASE_URL || !cfg?.PREVIEW_ENDPOINT) {
+  const baseUrl = normalizeBaseUrl(cfg?.BACKEND_BASE_URL);
+  const previewEndpoint = cfg?.PREVIEW_ENDPOINT;
+
+  if (!baseUrl || !previewEndpoint) {
     throw new Error("Endpoint preview manquant dans config.js");
   }
 
   await wakeBackend();
 
-  const response = await fetch(`${cfg.BACKEND_BASE_URL}${cfg.PREVIEW_ENDPOINT}`, {
+  const response = await fetchWithTimeout(`${baseUrl}${previewEndpoint}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify(payload)
-  });
+  }, 30000);
 
   const text = await response.text();
 
@@ -125,7 +172,6 @@ async function createPreviewAndStoreTempId(payload) {
   }
 
   currentTempId = data.tempId;
-
   return data;
 }
 
@@ -140,6 +186,11 @@ async function handlePreview() {
     return;
   }
 
+  if (previewBtn) {
+    previewBtn.disabled = true;
+    previewBtn.textContent = "Chargement...";
+  }
+
   previewStatus.textContent = "Chargement...";
   previewContent.classList.remove("empty");
   previewContent.innerHTML = "<p>Connexion au serveur...</p>";
@@ -149,9 +200,13 @@ async function handlePreview() {
 
     renderBusiness(data.preview);
     previewStatus.textContent = "Aperçu prêt";
-
   } catch (err) {
-    renderError(err.message);
+    renderError(err.message || "Erreur inconnue");
+  } finally {
+    if (previewBtn) {
+      previewBtn.disabled = false;
+      previewBtn.textContent = "Voir un aperçu gratuit";
+    }
   }
 }
 
@@ -168,26 +223,28 @@ async function handleCheckout(e) {
     return;
   }
 
-  if (!cfg?.BACKEND_BASE_URL || !cfg?.CHECKOUT_ENDPOINT) {
+  const baseUrl = normalizeBaseUrl(cfg?.BACKEND_BASE_URL);
+  const checkoutEndpoint = cfg?.CHECKOUT_ENDPOINT;
+
+  if (!baseUrl || !checkoutEndpoint) {
     renderError("Backend Stripe non configuré");
     return;
   }
 
   persistForm();
 
-  checkoutBtn.disabled = true;
-  checkoutBtn.textContent = "Redirection...";
+  if (checkoutBtn) {
+    checkoutBtn.disabled = true;
+    checkoutBtn.textContent = "Redirection...";
+  }
 
   try {
-    // Générer preview si pas encore fait
     if (!currentTempId) {
       const data = await createPreviewAndStoreTempId(payload);
       renderBusiness(data.preview);
     }
 
-    await wakeBackend();
-
-    const response = await fetch(`${cfg.BACKEND_BASE_URL}${cfg.CHECKOUT_ENDPOINT}`, {
+    const response = await fetchWithTimeout(`${baseUrl}${checkoutEndpoint}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -195,7 +252,7 @@ async function handleCheckout(e) {
       body: JSON.stringify({
         tempId: currentTempId
       })
-    });
+    }, 30000);
 
     const text = await response.text();
 
@@ -215,11 +272,12 @@ async function handleCheckout(e) {
     }
 
     window.location.href = data.url;
-
   } catch (err) {
-    checkoutBtn.disabled = false;
-    checkoutBtn.textContent = "Débloquer mon business — 34,99€";
-    renderError(err.message);
+    if (checkoutBtn) {
+      checkoutBtn.disabled = false;
+      checkoutBtn.textContent = "Débloquer mon business — 34,99€";
+    }
+    renderError(err.message || "Erreur inconnue");
   }
 }
 
@@ -232,7 +290,7 @@ function renderError(message) {
   previewContent.innerHTML = `<div class="error">${escapeHtml(message)}</div>`;
 }
 
-function renderBusiness(data) {
+function renderBusiness(data = {}) {
   const html = `
     ${section("Positionnement", data.positionnement)}
     ${section("Offre", data.offre)}
