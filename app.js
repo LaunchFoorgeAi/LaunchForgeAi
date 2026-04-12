@@ -33,8 +33,12 @@ function getPayload() {
   const raw = Object.fromEntries(formData.entries());
 
   return {
-    ...raw,
-    niche: raw.idea || ""
+    idea: (raw.idea || "").trim(),
+    audience: (raw.audience || "").trim(),
+    budget: (raw.budget || "").trim(),
+    experience: (raw.experience || "").trim(),
+    goal: (raw.goal || "").trim(),
+    details: (raw.details || "").trim()
   };
 }
 
@@ -114,10 +118,14 @@ async function wakeBackend() {
   }
 
   try {
-    const response = await fetchWithTimeout(baseUrl, {
-      method: "GET",
-      cache: "no-store"
-    }, 25000);
+    const response = await fetchWithTimeout(
+      `${baseUrl}/health`,
+      {
+        method: "GET",
+        cache: "no-store"
+      },
+      25000
+    );
 
     if (!response.ok) {
       throw new Error(`Backend inaccessible (${response.status})`);
@@ -126,7 +134,7 @@ async function wakeBackend() {
     return true;
   } catch (err) {
     if (err.name === "AbortError") {
-      throw new Error("Le backend met trop de temps à répondre. Réessaie dans 10 secondes.");
+      throw new Error("Le backend met trop de temps à répondre. Réessaie dans quelques secondes.");
     }
 
     throw new Error(`Impossible de joindre le backend à ${baseUrl}`);
@@ -146,13 +154,17 @@ async function createPreviewAndStoreTempId(payload) {
 
   await wakeBackend();
 
-  const response = await fetchWithTimeout(`${baseUrl}${previewEndpoint}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
+  const response = await fetchWithTimeout(
+    `${baseUrl}${previewEndpoint}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
     },
-    body: JSON.stringify(payload)
-  }, 30000);
+    30000
+  );
 
   const text = await response.text();
 
@@ -197,7 +209,6 @@ async function handlePreview() {
 
   try {
     const data = await createPreviewAndStoreTempId(payload);
-
     renderBusiness(data.preview);
     previewStatus.textContent = "Aperçu prêt";
   } catch (err) {
@@ -239,20 +250,27 @@ async function handleCheckout(e) {
   }
 
   try {
+    await wakeBackend();
+
     if (!currentTempId) {
-      const data = await createPreviewAndStoreTempId(payload);
-      renderBusiness(data.preview);
+      const previewData = await createPreviewAndStoreTempId(payload);
+      renderBusiness(previewData.preview);
     }
 
-    const response = await fetchWithTimeout(`${baseUrl}${checkoutEndpoint}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
+    const response = await fetchWithTimeout(
+      `${baseUrl}${checkoutEndpoint}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          tempId: currentTempId,
+          payload
+        })
       },
-      body: JSON.stringify({
-        tempId: currentTempId
-      })
-    }, 30000);
+      30000
+    );
 
     const text = await response.text();
 
@@ -273,11 +291,12 @@ async function handleCheckout(e) {
 
     window.location.href = data.url;
   } catch (err) {
+    renderError(err.message || "Erreur inconnue");
+  } finally {
     if (checkoutBtn) {
       checkoutBtn.disabled = false;
       checkoutBtn.textContent = "Débloquer mon business — 34,99€";
     }
-    renderError(err.message || "Erreur inconnue");
   }
 }
 
@@ -316,7 +335,7 @@ function section(title, value) {
    SECURITY
 ========================================= */
 function escapeHtml(str) {
-  return String(str)
+  return String(str || "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
