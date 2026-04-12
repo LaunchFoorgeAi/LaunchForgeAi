@@ -127,17 +127,25 @@ async function wakeBackend() {
       25000
     );
 
+    const text = await response.text();
+
     if (!response.ok) {
-      throw new Error(`Backend inaccessible (${response.status})`);
+      throw new Error(`/health a répondu ${response.status} : ${text}`);
+    }
+
+    try {
+      JSON.parse(text);
+    } catch {
+      throw new Error(`/health ne renvoie pas un JSON valide : ${text}`);
     }
 
     return true;
   } catch (err) {
     if (err.name === "AbortError") {
-      throw new Error("Le backend met trop de temps à répondre. Réessaie dans quelques secondes.");
+      throw new Error("Le backend met trop de temps à répondre.");
     }
 
-    throw new Error(`Impossible de joindre le backend à ${baseUrl}`);
+    throw new Error(`Erreur réelle backend : ${err.message}`);
   }
 }
 
@@ -154,17 +162,25 @@ async function createPreviewAndStoreTempId(payload) {
 
   await wakeBackend();
 
-  const response = await fetchWithTimeout(
-    `${baseUrl}${previewEndpoint}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
+  let response;
+  try {
+    response = await fetchWithTimeout(
+      `${baseUrl}${previewEndpoint}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
       },
-      body: JSON.stringify(payload)
-    },
-    30000
-  );
+      30000
+    );
+  } catch (err) {
+    if (err.name === "AbortError") {
+      throw new Error("La génération de l’aperçu a pris trop de temps.");
+    }
+    throw new Error(`Erreur réseau preview : ${err.message}`);
+  }
 
   const text = await response.text();
 
@@ -172,15 +188,19 @@ async function createPreviewAndStoreTempId(payload) {
   try {
     data = JSON.parse(text);
   } catch {
-    throw new Error("Réponse backend invalide");
+    throw new Error(`Réponse backend invalide sur preview : ${text}`);
   }
 
   if (!response.ok) {
-    throw new Error(data.error || "Erreur preview");
+    throw new Error(data.error || `Erreur preview (${response.status})`);
   }
 
   if (!data.tempId) {
     throw new Error("tempId manquant côté backend");
+  }
+
+  if (!data.preview) {
+    throw new Error("preview manquant côté backend");
   }
 
   currentTempId = data.tempId;
@@ -203,15 +223,23 @@ async function handlePreview() {
     previewBtn.textContent = "Chargement...";
   }
 
-  previewStatus.textContent = "Chargement...";
-  previewContent.classList.remove("empty");
-  previewContent.innerHTML = "<p>Connexion au serveur...</p>";
+  if (previewStatus) {
+    previewStatus.textContent = "Chargement...";
+  }
+
+  if (previewContent) {
+    previewContent.classList.remove("empty");
+    previewContent.innerHTML = "<p>Connexion au serveur...</p>";
+  }
 
   try {
     const data = await createPreviewAndStoreTempId(payload);
     renderBusiness(data.preview);
-    previewStatus.textContent = "Aperçu prêt";
+    if (previewStatus) {
+      previewStatus.textContent = "Aperçu prêt";
+    }
   } catch (err) {
+    console.error("Erreur handlePreview :", err);
     renderError(err.message || "Erreur inconnue");
   } finally {
     if (previewBtn) {
@@ -257,20 +285,28 @@ async function handleCheckout(e) {
       renderBusiness(previewData.preview);
     }
 
-    const response = await fetchWithTimeout(
-      `${baseUrl}${checkoutEndpoint}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
+    let response;
+    try {
+      response = await fetchWithTimeout(
+        `${baseUrl}${checkoutEndpoint}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            tempId: currentTempId,
+            payload
+          })
         },
-        body: JSON.stringify({
-          tempId: currentTempId,
-          payload
-        })
-      },
-      30000
-    );
+        30000
+      );
+    } catch (err) {
+      if (err.name === "AbortError") {
+        throw new Error("La création de la session Stripe a pris trop de temps.");
+      }
+      throw new Error(`Erreur réseau checkout : ${err.message}`);
+    }
 
     const text = await response.text();
 
@@ -278,11 +314,11 @@ async function handleCheckout(e) {
     try {
       data = JSON.parse(text);
     } catch {
-      throw new Error("Réponse Stripe invalide");
+      throw new Error(`Réponse Stripe invalide : ${text}`);
     }
 
     if (!response.ok) {
-      throw new Error(data.error || "Erreur Stripe");
+      throw new Error(data.error || `Erreur Stripe (${response.status})`);
     }
 
     if (!data.url) {
@@ -291,6 +327,7 @@ async function handleCheckout(e) {
 
     window.location.href = data.url;
   } catch (err) {
+    console.error("Erreur handleCheckout :", err);
     renderError(err.message || "Erreur inconnue");
   } finally {
     if (checkoutBtn) {
@@ -304,9 +341,14 @@ async function handleCheckout(e) {
    RENDER
 ========================================= */
 function renderError(message) {
-  previewStatus.textContent = "Erreur";
-  previewContent.classList.remove("empty");
-  previewContent.innerHTML = `<div class="error">${escapeHtml(message)}</div>`;
+  if (previewStatus) {
+    previewStatus.textContent = "Erreur";
+  }
+
+  if (previewContent) {
+    previewContent.classList.remove("empty");
+    previewContent.innerHTML = `<div class="error">${escapeHtml(message)}</div>`;
+  }
 }
 
 function renderBusiness(data = {}) {
@@ -318,8 +360,10 @@ function renderBusiness(data = {}) {
     ${section("Plan 30 jours", data.plan30j)}
   `;
 
-  previewContent.classList.remove("empty");
-  previewContent.innerHTML = html;
+  if (previewContent) {
+    previewContent.classList.remove("empty");
+    previewContent.innerHTML = html;
+  }
 }
 
 function section(title, value) {
